@@ -16,10 +16,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from audit_parser import parse_progress_report
-from config import DEPT_DISPLAY_NAMES, PREREQ_MAP
+from config import DEPT_DISPLAY_NAMES, PREREQ_MAP, GE_CATALOG_OPTIONS
 from rmp_client import fetch_rmp_profile
+
 from schedule_solver import is_conflict_free, parse_days, section_matches_preferences
-from views.smart_view import GE_CATALOG_OPTIONS
+
 
 # Initialize FastAPI App
 app = FastAPI(
