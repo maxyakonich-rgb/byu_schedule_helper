@@ -1,0 +1,18 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+
+# OS files
+.DS_Store
+
+# Scratch and recording logs
+*.recording.jsonl.gz
+*.log

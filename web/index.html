@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BYU Academic Planning Suite & Schedule Solver</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            appleBg: '#000000',
+            appleSurface: '#1C1C1E',
+            appleSurfaceAlt: '#2C2C2E',
+            appleBorder: '#38383A',
+            byuRoyal: '#0062B8',
+            byuRoyalHover: '#004f94',
+            byuRoyalSubtle: '#0A2540',
+            appleBlue: '#0A84FF',
+            appleGreen: '#30D158',
+            appleGreenBg: 'rgba(48, 209, 88, 0.15)',
+            appleOrange: '#FF9F0A',
+            appleOrangeBg: 'rgba(255, 159, 10, 0.15)',
+            appleRed: '#FF453A',
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom sleek scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #121214;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #38383A;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4A4A4C;
+    }
+    .frosted-glass {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  </style>
+</head>
+<body class="bg-appleBg text-zinc-100 font-sans min-h-screen flex flex-col selection:bg-byuRoyal selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- Top Navigation Header (Apple Style Minimalist Bar)                        -->
+  <!-- ========================================================================= -->
+  <header class="sticky top-0 z-40 bg-appleSurface/85 frosted-glass border-b border-appleBorder px-6 py-3.5 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2.5 cursor-pointer" onclick="switchTab('home')">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-byuRoyal to-blue-500 flex items-center justify-center font-bold text-white text-sm shadow-md">
+          Y
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold tracking-wide text-white leading-tight">BYU Academic Suite</h1>
+          <p class="text-[11px] text-zinc-400 font-medium">Schedule Solver & MyMap Degree Planner</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 pl-4 border-l border-appleBorder/60">
+        <button id="tab-home" onclick="switchTab('home')" class="nav-tab px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-white transition">
+          Home
+        </button>
+        <button id="tab-mymap" onclick="switchTab('mymap')" class="nav-tab px-3.5 py-1.5 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 transition flex items-center space-x-1.5">
+          <span>MyMap Audit & Recommender</span>
+        </button>
+        <button id="tab-lookup" onclick="switchTab('lookup')" class="nav-tab px-3.5 py-1.5 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 transition">
+          Catalog Lookup
+        </button>
+        <button id="tab-builder" onclick="switchTab('builder')" class="nav-tab px-3.5 py-1.5 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 transition flex items-center space-x-1.5">
+          <span>Schedule Builder</span>
+          <span id="nav-staged-badge" class="hidden px-1.5 py-0.2 text-[10px] bg-byuRoyal font-bold rounded-full text-white">0</span>
+        </button>
+        <button id="tab-roadmap" onclick="switchTab('roadmap')" class="nav-tab px-3.5 py-1.5 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 transition">
+          Roadmap
+        </button>
+      </nav>
+    </div>
+
+    <!-- Right Action & Status -->
+    <div class="flex items-center space-x-3">
+      <label class="cursor-pointer bg-byuRoyal hover:bg-byuRoyalHover text-white px-3.5 py-1.5 rounded-full text-xs font-semibold shadow transition flex items-center space-x-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        <span>Upload Progress PDF</span>
+        <input type="file" id="audit-file-input" accept=".pdf,.txt" class="hidden" onchange="handleFileUpload(event)">
+      </label>
+      <div id="status-pill" class="hidden md:flex items-center space-x-1.5 px-3 py-1 bg-zinc-800/80 border border-zinc-700/60 rounded-full text-[11px] text-zinc-300">
+        <span class="w-2 h-2 rounded-full bg-appleGreen"></span>
+        <span id="status-text">Catalog Online</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Tab Bar -->
+  <div class="flex md:hidden bg-appleSurface border-b border-appleBorder px-2 py-2 overflow-x-auto space-x-1">
+    <button onclick="switchTab('home')" class="px-3 py-1 rounded-full text-xs text-white bg-white/10 whitespace-nowrap">Home</button>
+    <button onclick="switchTab('mymap')" class="px-3 py-1 rounded-full text-xs text-zinc-400 hover:text-white whitespace-nowrap">MyMap Audit</button>
+    <button onclick="switchTab('lookup')" class="px-3 py-1 rounded-full text-xs text-zinc-400 hover:text-white whitespace-nowrap">Lookup</button>
+    <button onclick="switchTab('builder')" class="px-3 py-1 rounded-full text-xs text-zinc-400 hover:text-white whitespace-nowrap">Builder</button>
+    <button onclick="switchTab('roadmap')" class="px-3 py-1 rounded-full text-xs text-zinc-400 hover:text-white whitespace-nowrap">Roadmap</button>
+  </div>
+
+  <!-- Global Student Banner -->
+  <div id="student-banner" class="hidden bg-byuRoyalSubtle border-b border-byuRoyal/30 px-6 py-2.5 flex flex-wrap items-center justify-between text-xs text-zinc-200">
+    <div class="flex items-center space-x-2">
+      <span class="text-appleGreen font-semibold">Active Student:</span>
+      <span id="banner-student-name" class="font-semibold text-white">Student</span>
+      <span class="text-zinc-500">•</span>
+      <span id="banner-major" class="text-zinc-300">Major</span>
+      <span class="text-zinc-500">•</span>
+      <span id="banner-standing" class="text-blue-300 font-medium">Standing</span>
+    </div>
+    <div class="flex items-center space-x-4 text-zinc-300 font-medium mt-1 sm:mt-0">
+      <span>Completed: <strong id="banner-credits" class="text-white">0.0</strong> cr</span>
+      <span>GPA: <strong id="banner-gpa" class="text-white">0.00</strong></span>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast-banner" class="hidden fixed bottom-6 right-6 z-50 bg-appleSurface border border-byuRoyal text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+    <span id="toast-message">Notification</span>
+    <button onclick="hideToast()" class="text-zinc-400 hover:text-white font-bold ml-2">Done</button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- Main View Containers                                                      -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- VIEW 1: HOME DASHBOARD -->
+    <section id="view-home" class="space-y-6">
+      <!-- Hero Card -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-appleSurface to-zinc-900 border border-appleBorder p-8 shadow-xl">
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-byuRoyal/20 border border-byuRoyal/30 text-blue-400 text-xs font-semibold mb-4">
+            <span>BYU Academic Suite</span>
+          </div>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-3">
+            Plan Courses. Solve Schedules. Graduate On Time.
+          </h2>
+          <p class="text-zinc-400 text-sm sm:text-base leading-relaxed mb-6">
+            Upload your official BYU Progress to Degree PDF to automatically extract completed requirements, inspect your live MyMap degree audit, discover top-rated professors, and generate conflict-free schedules.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <label class="cursor-pointer bg-byuRoyal hover:bg-byuRoyalHover text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg transition flex items-center space-x-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              <span>Upload Progress to Degree PDF</span>
+              <input type="file" accept=".pdf,.txt" class="hidden" onchange="handleFileUpload(event)">
+            </label>
+            <button onclick="switchTab('mymap')" class="bg-appleSurfaceAlt hover:bg-zinc-700 text-zinc-200 px-5 py-2.5 rounded-xl text-sm font-medium border border-appleBorder transition">
+              View MyMap Audit
+            </button>
+            <button onclick="autoStageBalancedSemester()" class="bg-appleSurfaceAlt hover:bg-zinc-700 text-blue-400 px-5 py-2.5 rounded-xl text-sm font-semibold border border-appleBorder transition">
+              Auto-Stage Balanced Semester (~15 cr)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bento Metric Strip -->
+      <div id="bento-strip" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 shadow-sm">
+          <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Credits Earned</div>
+          <div id="bento-earned" class="text-2xl font-bold text-appleGreen">0.0 <span class="text-xs text-zinc-400 font-normal">cr</span></div>
+          <div class="text-[11px] text-zinc-400 mt-1">Official completed credit</div>
+        </div>
+        <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 shadow-sm">
+          <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">In Progress</div>
+          <div id="bento-in-progress" class="text-2xl font-bold text-appleBlue">0.0 <span class="text-xs text-zinc-400 font-normal">cr</span></div>
+          <div class="text-[11px] text-zinc-400 mt-1">Active registered credits</div>
+        </div>
+        <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 shadow-sm">
+          <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Remaining to 120 cr</div>
+          <div id="bento-remaining" class="text-2xl font-bold text-appleOrange">120.0 <span class="text-xs text-zinc-400 font-normal">cr</span></div>
+          <div class="text-[11px] text-zinc-400 mt-1">Needed for graduation</div>
+        </div>
+        <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 shadow-sm">
+          <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Cumulative GPA</div>
+          <div id="bento-gpa" class="text-2xl font-bold text-white">0.00</div>
+          <div id="bento-standing" class="text-[11px] text-zinc-400 mt-1">Class Standing</div>
+        </div>
+      </div>
+
+      <!-- App Launch Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div onclick="switchTab('mymap')" class="cursor-pointer group bg-appleSurface hover:bg-appleSurfaceAlt border border-appleBorder rounded-xl p-5 transition shadow-sm">
+          <div class="text-xs font-bold text-byuRoyal uppercase tracking-wider mb-2">AIM / Audit</div>
+          <h3 class="text-base font-bold text-white group-hover:text-blue-400 transition">MyMap Degree Audit</h3>
+          <p class="text-xs text-zinc-400 mt-1.5 leading-relaxed">Full Hours Analysis table, General Education checklist, and Major deficiency recommendations.</p>
+        </div>
+        <div onclick="switchTab('lookup')" class="cursor-pointer group bg-appleSurface hover:bg-appleSurfaceAlt border border-appleBorder rounded-xl p-5 transition shadow-sm">
+          <div class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Catalog</div>
+          <h3 class="text-base font-bold text-white group-hover:text-blue-400 transition">Catalog Directory</h3>
+          <p class="text-xs text-zinc-400 mt-1.5 leading-relaxed">Search BYU courses, inspect open seats, and view course-specific student reviews.</p>
+        </div>
+        <div onclick="switchTab('builder')" class="cursor-pointer group bg-appleSurface hover:bg-appleSurfaceAlt border border-appleBorder rounded-xl p-5 transition shadow-sm">
+          <div class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2">Timetable</div>
+          <h3 class="text-base font-bold text-white group-hover:text-purple-400 transition">Schedule Builder</h3>
+          <p class="text-xs text-zinc-400 mt-1.5 leading-relaxed">Solve conflict-free weekly schedules filtered by professor rating and time constraints.</p>
+        </div>
+        <div onclick="switchTab('roadmap')" class="cursor-pointer group bg-appleSurface hover:bg-appleSurfaceAlt border border-appleBorder rounded-xl p-5 transition shadow-sm">
+          <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Planning</div>
+          <h3 class="text-base font-bold text-white group-hover:text-emerald-400 transition">Degree Roadmap</h3>
+          <p class="text-xs text-zinc-400 mt-1.5 leading-relaxed">Sequence remaining courses across future terms to reach graduation requirements.</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- VIEW 2: MYMAP DEGREE AUDIT & RECOMMENDER -->
+    <section id="view-mymap" class="hidden space-y-6">
+      <!-- MyMap Top Header Bar -->
+      <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 space-y-4 shadow-sm">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-appleBorder/60 pb-4">
+          <div>
+            <div class="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-byuRoyalSubtle border border-byuRoyal/40 text-blue-300 text-[11px] font-semibold mb-1">
+              Brigham Young University - Progress to Degree Audit
+            </div>
+            <h2 id="mymap-program-title" class="text-xl font-bold text-white">Program: Undeclared</h2>
+            <p id="mymap-program-sub" class="text-xs text-zinc-400 mt-0.5">Upload a BYU Progress to Degree PDF to populate your official requirements.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="autoStageBalancedSemester()" class="bg-byuRoyal hover:bg-byuRoyalHover text-white px-4 py-2 rounded-lg text-xs font-semibold shadow transition">
+              Auto-Stage Balanced Semester (~15 cr)
+            </button>
+            <button onclick="toggleAllGEDropdowns()" id="toggle-all-ge-btn" class="bg-appleSurfaceAlt hover:bg-zinc-700 text-zinc-200 px-3.5 py-2 rounded-lg text-xs font-medium border border-appleBorder transition">
+              Expand All GE Options
+            </button>
+          </div>
+        </div>
+
+        <!-- MyMap Hours Analysis Table -->
+        <div id="mymap-hours-container" class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold uppercase tracking-wider text-zinc-300">Program Hours Analysis</span>
+            <span id="mymap-progress-summary" class="text-xs text-zinc-400 font-mono">0.0 / 120.0 cr (0%)</span>
+          </div>
+
+          <!-- Overall Progress Bar -->
+          <div class="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+            <div id="mymap-progress-fill" class="bg-appleGreen h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+
+          <!-- Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-zinc-300">
+              <thead class="text-[11px] uppercase tracking-wider text-zinc-500 border-b border-appleBorder/60">
+                <tr>
+                  <th class="py-2 pr-4 font-semibold">Requirement Area</th>
+                  <th class="py-2 px-3 text-right font-semibold">Required</th>
+                  <th class="py-2 px-3 text-right font-semibold">Completed</th>
+                  <th class="py-2 px-3 text-right font-semibold">In Progress</th>
+                  <th class="py-2 px-3 text-right font-semibold">Planned</th>
+                  <th class="py-2 px-3 text-right font-semibold">Remaining</th>
+                  <th class="py-2 pl-3 text-right font-semibold">% Done</th>
+                </tr>
+              </thead>
+              <tbody id="mymap-hours-tbody" class="divide-y divide-appleBorder/40">
+                <tr>
+                  <td colspan="7" class="py-4 text-center text-zinc-500">No report loaded. Upload your PDF to view Hours Analysis.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Controls Strip -->
+      <div class="bg-appleSurface border border-appleBorder rounded-xl px-5 py-3 flex items-center justify-between text-xs text-zinc-300 shadow-sm">
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" id="mymap-filter-all" checked onchange="renderMyMapAudit()" class="rounded bg-appleSurfaceAlt border-appleBorder text-byuRoyal focus:ring-0">
+          <span>Show Completed and In-Progress Requirements</span>
+        </label>
+        <span id="mymap-deficiencies-summary" class="text-zinc-400">0 deficiencies found</span>
+      </div>
+
+      <!-- Section 1: General Education Requirements -->
+      <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 space-y-4 shadow-sm">
+        <div class="border-b border-appleBorder/60 pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="text-sm font-bold text-white">General Education Requirements</h3>
+            <p class="text-[11px] text-zinc-400">Official BYU General Education core and breadth areas with top 5 rated course rankings.</p>
+          </div>
+          <span id="mymap-ge-needed-count" class="text-xs text-zinc-400">0 needed</span>
+        </div>
+        <div id="mymap-ge-groups-container" class="space-y-4">
+          <p class="text-xs text-zinc-500 py-4 text-center">Upload a BYU Progress to Degree PDF to view your General Education requirements.</p>
+        </div>
+      </div>
+
+      <!-- Section 2: Major Requirements -->
+      <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 space-y-4 shadow-sm">
+        <div class="border-b border-appleBorder/60 pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="text-sm font-bold text-white">Major Core & Elective Deficiencies</h3>
+            <p class="text-[11px] text-zinc-400">Courses and options required for your declared major program.</p>
+          </div>
+          <span id="mymap-major-needed-count" class="text-xs text-zinc-400">0 needed</span>
+        </div>
+        <div id="mymap-major-container" class="space-y-2">
+          <p class="text-xs text-zinc-500 py-4 text-center">Upload a Progress Report to view required major courses.</p>
+        </div>
+      </div>
+
+      <!-- Section 3: Religion Requirements -->
+      <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 space-y-4 shadow-sm">
+        <div class="border-b border-appleBorder/60 pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="text-sm font-bold text-white">Religion Requirements (Cornerstones & Electives)</h3>
+            <p class="text-[11px] text-zinc-400">14.0 semester hours required for graduation, including the 4 core cornerstones.</p>
+          </div>
+          <span id="mymap-religion-needed-count" class="text-xs text-zinc-400">0 needed</span>
+        </div>
+        <div id="mymap-religion-container" class="space-y-2">
+          <p class="text-xs text-zinc-500 py-4 text-center">Upload a Progress Report to view remaining Religion courses.</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- VIEW 3: CATALOG LOOKUP -->
+    <section id="view-lookup" class="hidden space-y-5">
+      <div class="bg-appleSurface border border-appleBorder rounded-xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between shadow-sm">
+        <div class="relative w-full md:w-96">
+          <input type="text" id="catalog-search" placeholder="Search by course code, title, or professor..." 
+                 class="w-full bg-appleSurfaceAlt border border-appleBorder rounded-lg px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-byuRoyal"
+                 oninput="handleCatalogSearchDebounce()">
+        </div>
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+          <select id="catalog-dept-filter" onchange="fetchCatalogCourses()" class="bg-appleSurfaceAlt border border-appleBorder rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-byuRoyal">
+            <option value="ALL">All Departments</option>
+          </select>
+          <select id="catalog-sort" onchange="fetchCatalogCourses()" class="bg-appleSurfaceAlt border border-appleBorder rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-byuRoyal">
+            <option value="code">Course Code (A–Z)</option>
+            <option value="rating">Highest RMP Rating</option>
+            <option value="sections">Most Sections</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="catalog-results-container" class="space-y-3.5">
+        <div class="text-center py-16 text-zinc-500 text-xs">Loading course catalog...</div>
+      </div>
+
+      <div id="catalog-pagination" class="flex justify-between items-center py-2 text-xs text-zinc-400">
+        <span id="catalog-count-text">Showing 0 of 0 courses</span>
+        <div class="flex space-x-2">
+          <button id="catalog-prev-btn" onclick="prevCatalogPage()" class="px-3 py-1.5 rounded-lg bg-appleSurface border border-appleBorder text-white disabled:opacity-40" disabled>Previous</button>
+          <button id="catalog-next-btn" onclick="nextCatalogPage()" class="px-3 py-1.5 rounded-lg bg-appleSurface border border-appleBorder text-white disabled:opacity-40" disabled>Next</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- VIEW 4: SCHEDULE BUILDER -->
+    <section id="view-builder" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left Sidebar: Staged Courses & Preferences -->
+        <div class="lg:col-span-4 bg-appleSurface border border-appleBorder rounded-xl p-5 space-y-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-appleBorder/60 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-white">Staged Courses</h3>
+              <p class="text-[11px] text-zinc-400" id="staged-credits-label">0.0 Total Credits</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="autoStageBalancedSemester()" class="text-xs text-blue-400 hover:text-blue-300 transition font-medium">Auto-Fill</button>
+              <span class="text-zinc-600">•</span>
+              <button onclick="clearAllStaged()" class="text-xs text-zinc-400 hover:text-appleRed transition font-medium">Clear All</button>
+            </div>
+          </div>
+
+          <!-- Staged Pills -->
+          <div id="builder-staged-list" class="space-y-2 min-h-[90px] max-h-64 overflow-y-auto">
+            <p class="text-xs text-zinc-500 text-center py-6">No courses staged yet.<br>Add courses from Lookup, MyMap Audit, or Roadmap.</p>
+          </div>
+
+          <!-- Preferences -->
+          <div class="border-t border-appleBorder/60 pt-4 space-y-3.5">
+            <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Solver Filters</h4>
+            <div>
+              <label class="text-[11px] text-zinc-400 block mb-1">Minimum Course Rating</label>
+              <select id="pref-min-rmp" class="w-full bg-appleSurfaceAlt border border-appleBorder rounded-lg px-2.5 py-1.5 text-xs text-zinc-200">
+                <option value="0.0">Any Rating (All Sections)</option>
+                <option value="3.0">3.0 or Higher</option>
+                <option value="3.5">3.5 or Higher</option>
+                <option value="4.0">4.0 or Higher</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-zinc-300">Exclude Friday Classes</span>
+              <input type="checkbox" id="pref-no-fridays" class="rounded bg-appleSurfaceAlt border-appleBorder text-byuRoyal focus:ring-0">
+            </div>
+          </div>
+
+          <button onclick="solveSchedules()" class="w-full bg-byuRoyal hover:bg-byuRoyalHover text-white py-2.5 rounded-xl text-xs font-semibold shadow transition">
+            Solve Non-Conflicting Schedules
+          </button>
+        </div>
+
+        <!-- Right Panel: Solved Schedules -->
+        <div class="lg:col-span-8 bg-appleSurface border border-appleBorder rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-appleBorder/60 pb-3 mb-4">
+            <h3 class="text-sm font-bold text-white">Optimal Schedule Permutations</h3>
+            <span id="builder-results-status" class="text-xs text-zinc-400">Ready to solve</span>
+          </div>
+          <div id="builder-schedules-list" class="space-y-4">
+            <p class="text-xs text-zinc-500 text-center py-16">
+              Stage 2 or more courses and click "Solve Non-Conflicting Schedules" to generate ranked weekly timetables.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- VIEW 5: DEGREE ROADMAP -->
+    <section id="view-roadmap" class="hidden space-y-6">
+      <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+        <div>
+          <h2 class="text-lg font-bold text-white">Degree Roadmap & Semester Sequencing</h2>
+          <p class="text-xs text-zinc-400 mt-0.5">Automated multi-semester distribution with prerequisite validation to hit 120 graduation credits.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <div>
+            <label class="text-[10px] text-zinc-400 block mb-0.5">Starting Term</label>
+            <select id="roadmap-term" onchange="generateRoadmap()" class="bg-appleSurfaceAlt border border-appleBorder rounded-lg px-2.5 py-1.5 text-xs text-zinc-200">
+              <option value="Winter 2027">Winter 2027</option>
+              <option value="Fall 2027">Fall 2027</option>
+              <option value="Winter 2028">Winter 2028</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-zinc-400 block mb-0.5">Target Credits/Term</label>
+            <select id="roadmap-credits" onchange="generateRoadmap()" class="bg-appleSurfaceAlt border border-appleBorder rounded-lg px-2.5 py-1.5 text-xs text-zinc-200">
+              <option value="12.0">12.0 cr</option>
+              <option value="14.0">14.0 cr</option>
+              <option value="15.0" selected>15.0 cr</option>
+              <option value="16.0">16.0 cr</option>
+            </select>
+          </div>
+          <div class="flex items-center space-x-1.5 pt-4">
+            <input type="checkbox" id="roadmap-summer" onchange="generateRoadmap()" class="rounded bg-appleSurfaceAlt border-appleBorder text-byuRoyal">
+            <label for="roadmap-summer" class="text-xs text-zinc-300 cursor-pointer">Include Spring/Summer</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="roadmap-timeline" class="space-y-4">
+        <p class="text-xs text-zinc-500 py-16 text-center">Upload a BYU Progress to Degree PDF to generate your personalized graduation roadmap.</p>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: WEEKLY CALENDAR TIMETABLE MODAL                                  -->
+  <!-- ========================================================================= -->
+  <div id="calendar-modal" class="hidden fixed inset-0 z-50 bg-black/80 frosted-glass flex items-center justify-center p-4">
+    <div class="bg-appleSurface border border-appleBorder rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-appleBorder flex items-center justify-between">
+        <div>
+          <h3 id="modal-cal-title" class="text-base font-bold text-white">Weekly Schedule Timetable</h3>
+          <p id="modal-cal-subtitle" class="text-xs text-zinc-400 mt-0.5">15.0 Credits • 4.10 Avg Rating</p>
+        </div>
+        <button onclick="closeCalendarModal()" class="px-3.5 py-1.5 rounded-lg bg-appleSurfaceAlt hover:bg-zinc-700 text-xs font-semibold text-zinc-300 border border-appleBorder">
+          Done (Esc)
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div class="grid grid-cols-6 gap-2 text-center text-xs font-semibold text-zinc-400 border-b border-appleBorder pb-2">
+          <div>Time</div>
+          <div>Monday</div>
+          <div>Tuesday</div>
+          <div>Wednesday</div>
+          <div>Thursday</div>
+          <div>Friday</div>
+        </div>
+        <div id="calendar-grid-body" class="relative mt-2 min-h-[500px]">
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: PROFESSOR & COURSE REVIEWS MODAL                                 -->
+  <!-- ========================================================================= -->
+  <div id="reviews-modal" class="hidden fixed inset-0 z-50 bg-black/80 frosted-glass flex items-center justify-center p-4">
+    <div class="bg-appleSurface border border-appleBorder rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-appleBorder flex items-center justify-between">
+        <div>
+          <h3 id="modal-rev-instructor" class="text-base font-bold text-white">Professor Reviews</h3>
+          <p id="modal-rev-course" class="text-xs text-zinc-400 mt-0.5">Course-specific student feedback</p>
+        </div>
+        <button onclick="closeReviewsModal()" class="px-3.5 py-1.5 rounded-lg bg-appleSurfaceAlt hover:bg-zinc-700 text-xs font-semibold text-zinc-300 border border-appleBorder">
+          Done (Esc)
+        </button>
+      </div>
+
+      <!-- Professor Selector Row (if course has multiple instructors) -->
+      <div id="modal-rev-prof-select-container" class="hidden px-6 py-2.5 bg-appleSurfaceAlt/40 border-b border-appleBorder flex items-center justify-between text-xs">
+        <span class="text-zinc-400">Select Instructor:</span>
+        <select id="modal-rev-prof-select" onchange="handleModalProfChanged()" class="bg-appleSurface border border-appleBorder rounded-lg px-2.5 py-1 text-xs text-zinc-200">
+        </select>
+      </div>
+
+      <!-- Scores Strip -->
+      <div class="px-6 py-4 bg-appleSurfaceAlt/50 border-b border-appleBorder grid grid-cols-3 gap-3 text-center">
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-400">Course Rating</div>
+          <div id="modal-rev-rating" class="text-xl font-black text-appleGreen mt-0.5">4.0 / 5.0</div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-400">Difficulty</div>
+          <div id="modal-rev-difficulty" class="text-xl font-bold text-zinc-200 mt-0.5">2.5 / 5.0</div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-400">Total Reviews</div>
+          <div id="modal-rev-num" class="text-xl font-bold text-zinc-200 mt-0.5">12</div>
+        </div>
+      </div>
+
+      <!-- Reviews Scroll Area -->
+      <div id="modal-rev-list" class="flex-1 overflow-y-auto p-6 space-y-4">
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- FRONTEND APPLICATION JAVASCRIPT                                           -->
+  <!-- ========================================================================= -->
+  <script>
+    let studentProfile = null;
+    let catalogOffset = 0;
+    const catalogLimit = 40;
+    let catalogTotal = 0;
+    let stagedCourses = new Set();
+    let geOptionsData = null;
+    let searchDebounceTimeout = null;
+    let activeModalCourseCode = "";
+
+    async function initApp() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const deptSelect = document.getElementById('catalog-dept-filter');
+        data.departments.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = `${d} - ${data.dept_display_names[d] || d}`;
+          deptSelect.appendChild(opt);
+        });
+        document.getElementById('status-pill').classList.remove('hidden');
+      } catch (e) {
+        console.error('Failed to init app status', e);
+      }
+      fetchCatalogCourses();
+      fetchGEOptions();
+    }
+
+    function switchTab(tabName) {
+      ['home', 'mymap', 'lookup', 'builder', 'roadmap'].forEach(t => {
+        const viewEl = document.getElementById(`view-${t}`);
+        const tabEl = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          viewEl.classList.remove('hidden');
+          if (tabEl) {
+            tabEl.classList.add('bg-white/10', 'text-white');
+            tabEl.classList.remove('text-zinc-400');
+          }
+        } else {
+          viewEl.classList.add('hidden');
+          if (tabEl) {
+            tabEl.classList.remove('bg-white/10', 'text-white');
+            tabEl.classList.add('text-zinc-400');
+          }
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-banner');
+      document.getElementById('toast-message').textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => { hideToast(); }, 4000);
+    }
+
+    function hideToast() {
+      document.getElementById('toast-banner').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------------------
+    // Upload & Profile Handling
+    // -------------------------------------------------------------------------
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const statusText = document.getElementById('status-text');
+        statusText.textContent = 'Parsing Audit...';
+
+        const res = await fetch('/api/upload-audit', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.detail || 'Failed to parse audit');
+          return;
+        }
+
+        studentProfile = await res.json();
+        updateUIWithProfile();
+        statusText.textContent = 'Audit Loaded';
+        showToast(`Loaded audit for ${studentProfile.student_name} (${studentProfile.major})`);
+        switchTab('mymap');
+      } catch (e) {
+        alert('Error uploading audit: ' + e.message);
+      }
+    }
+
+    function updateUIWithProfile() {
+      if (!studentProfile) return;
+
+      document.getElementById('student-banner').classList.remove('hidden');
+      document.getElementById('banner-student-name').textContent = studentProfile.student_name || 'Student';
+      document.getElementById('banner-major').textContent = studentProfile.major || 'Undeclared';
+      document.getElementById('banner-standing').textContent = studentProfile.standing || 'Freshman';
+      document.getElementById('banner-credits').textContent = (studentProfile.credits || 0).toFixed(1);
+      document.getElementById('banner-gpa').textContent = studentProfile.gpa || '0.00';
+
+      document.getElementById('bento-strip').classList.remove('hidden');
+      document.getElementById('bento-earned').innerHTML = `${(studentProfile.credits || 0).toFixed(1)} <span class="text-xs text-zinc-400 font-normal">cr</span>`;
+      document.getElementById('bento-in-progress').innerHTML = `${(studentProfile.in_progress_credits || 0).toFixed(1)} <span class="text-xs text-zinc-400 font-normal">cr</span>`;
+      document.getElementById('bento-remaining').innerHTML = `${(studentProfile.remaining_credits || 0).toFixed(1)} <span class="text-xs text-zinc-400 font-normal">cr</span>`;
+      document.getElementById('bento-gpa').textContent = studentProfile.gpa || '0.00';
+      document.getElementById('bento-standing').textContent = `${studentProfile.standing} Standing`;
+
+      renderMyMapAudit();
+      generateRoadmap();
+    }
+
+    // -------------------------------------------------------------------------
+    // MyMap Degree Audit View
+    // -------------------------------------------------------------------------
+    let allGEExpanded = false;
+
+    function toggleAllGEDropdowns() {
+      allGEExpanded = !allGEExpanded;
+      document.querySelectorAll('.ge-dropdown-body').forEach(el => {
+        if (allGEExpanded) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      });
+      document.getElementById('toggle-all-ge-btn').textContent = allGEExpanded ? 'Collapse All GE' : 'Expand All GE Options';
+    }
+
+    function toggleGEDropdown(id) {
+      const el = document.getElementById(`ge-dropdown-${id}`);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    function renderMyMapAudit() {
+      if (!studentProfile) return;
+
+      document.getElementById('mymap-program-title').textContent = `Program: ${studentProfile.major}`;
+      document.getElementById('mymap-program-sub').textContent = `Student: ${studentProfile.student_name} (${studentProfile.byu_id || 'BYU ID'}) | Cumulative GPA: ${studentProfile.gpa} | Standing: ${studentProfile.standing}`;
+
+      // Hours Analysis
+      const haRows = studentProfile.hours_analysis || [];
+      const tbody = document.getElementById('mymap-hours-tbody');
+      if (haRows.length) {
+        tbody.innerHTML = haRows.map(r => {
+          const isTotal = r.category.toLowerCase().includes('total');
+          return `
+            <tr class="${isTotal ? 'font-bold text-white bg-white/5' : ''}">
+              <td class="py-2 pr-4">${r.category}</td>
+              <td class="py-2 px-3 text-right font-mono">${r.required.toFixed(1)}</td>
+              <td class="py-2 px-3 text-right font-mono text-appleGreen">${r.completed.toFixed(1)}</td>
+              <td class="py-2 px-3 text-right font-mono text-appleBlue">${r.in_progress.toFixed(1)}</td>
+              <td class="py-2 px-3 text-right font-mono text-zinc-400">${r.planned.toFixed(1)}</td>
+              <td class="py-2 px-3 text-right font-mono text-appleOrange">${r.remaining.toFixed(1)}</td>
+              <td class="py-2 pl-3 text-right font-mono">${r.percent}</td>
+            </tr>
+          `;
+        }).join('');
+
+        const totalRow = haRows.find(r => r.category.toLowerCase().includes('total'));
+        if (totalRow) {
+          const pct = Math.min(100, Math.max(0, ((totalRow.completed + totalRow.in_progress) / totalRow.required) * 100));
+          document.getElementById('mymap-progress-fill').style.width = `${pct}%`;
+          document.getElementById('mymap-progress-summary').textContent = `${(totalRow.completed + totalRow.in_progress).toFixed(1)} / ${totalRow.required.toFixed(1)} cr (${pct.toFixed(1)}%)`;
+        }
+      }
+
+      const showAll = document.getElementById('mymap-filter-all').checked;
+
+      // GE Requirements
+      const geItems = studentProfile.ge_audit || [];
+      const geContainer = document.getElementById('mymap-ge-groups-container');
+      const groupedGE = {};
+
+      geItems.forEach(item => {
+        if (!showAll && item.status !== 'Not Completed') return;
+        if (!groupedGE[item.group]) groupedGE[item.group] = [];
+        groupedGE[item.group].push(item);
+      });
+
+      const missingGECnt = geItems.filter(i => i.status === 'Not Completed').length;
+      document.getElementById('mymap-ge-needed-count').textContent = `${missingGECnt} needed`;
+
+      let geHtml = '';
+      let idxCounter = 0;
+      for (const [groupTitle, rows] of Object.entries(groupedGE)) {
+        geHtml += `
+          <div class="bg-appleSurfaceAlt/30 border border-appleBorder rounded-xl p-4 space-y-2.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-byuRoyal">${groupTitle}</div>
+            <div class="space-y-2">
+        `;
+
+        rows.forEach(r => {
+          idxCounter++;
+          const isNeeded = r.status === 'Not Completed';
+          const statusClass = r.status === 'Completed' ? 'bg-appleGreenBg text-appleGreen border-appleGreen/40' :
+                              r.status === 'In Progress' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
+                              'bg-appleOrangeBg text-appleOrange border-appleOrange/40';
+
+          const topOptions = (geOptionsData && geOptionsData[r.placeholder]) ? geOptionsData[r.placeholder].slice(0, 5) : [];
+
+          const optionsListHtml = topOptions.map(opt => {
+            const isStaged = stagedCourses.has(opt.catalog_key);
+            return `
+              <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-zinc-900 border border-appleBorder/50 text-xs">
+                <div>
+                  <span class="font-bold text-white">${opt.code}</span>
+                  <span class="text-zinc-400 ml-1.5">${opt.title} (${opt.credits} cr)</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-[11px] font-bold text-appleGreen">${opt.avg_rmp > 0 ? opt.avg_rmp.toFixed(2) + ' rating' : ''}</span>
+                  <button onclick="openReviewsModal('', '${opt.code}')" 
+                          class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition">
+                    Reviews
+                  </button>
+                  <button onclick="toggleStageCourse('${opt.catalog_key.replace(/'/g, "\\'")}')" 
+                          class="px-2.5 py-1 rounded text-[11px] font-semibold transition ${isStaged ? 'bg-appleGreenBg text-appleGreen border border-appleGreen/40' : 'bg-byuRoyal hover:bg-byuRoyalHover text-white'}">
+                    ${isStaged ? 'Staged' : '+ Stage'}
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          geHtml += `
+            <div class="bg-appleSurface border border-appleBorder rounded-lg p-3">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center space-x-2.5">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${statusClass}">
+                    ${r.status}
+                  </span>
+                  <span class="font-bold text-xs text-white">${r.name}</span>
+                  <span class="text-xs text-zinc-400 font-mono">(${r.credits} cr)</span>
+                  ${r.satisfied_by ? `<span class="text-xs text-zinc-400 font-medium">via ${r.satisfied_by}</span>` : ''}
+                </div>
+                ${isNeeded ? `
+                  <button onclick="toggleGEDropdown(${idxCounter})" class="text-xs text-blue-400 font-semibold hover:underline self-end sm:self-auto">
+                    Top 5 Rated Classes
+                  </button>
+                ` : ''}
+              </div>
+              ${isNeeded ? `
+                <div id="ge-dropdown-${idxCounter}" class="ge-dropdown-body hidden space-y-1.5 pt-2.5 mt-2 border-t border-appleBorder/40">
+                  ${optionsListHtml.length ? optionsListHtml : '<p class="text-zinc-500 text-xs py-1">No catalog offerings found.</p>'}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        });
+
+        geHtml += `</div></div>`;
+      }
+      geContainer.innerHTML = geHtml || '<p class="text-xs text-zinc-500 py-3 text-center">No requirements match filter.</p>';
+
+      // Major Requirements
+      const majorContainer = document.getElementById('mymap-major-container');
+      const missingMajor = studentProfile.missing_major || [];
+      document.getElementById('mymap-major-needed-count').textContent = `${missingMajor.length} needed`;
+
+      if (!missingMajor.length) {
+        majorContainer.innerHTML = '<p class="text-xs text-appleGreen py-3 text-center">All core major requirements satisfied.</p>';
+      } else {
+        majorContainer.innerHTML = missingMajor.map(m => {
+          const code = m[0];
+          const credits = m[1];
+          const title = m[2];
+          const fullKey = `${code} - ${title}`;
+          const isStaged = stagedCourses.has(fullKey);
+
+          return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-appleSurfaceAlt/40 border border-appleBorder text-xs">
+              <div>
+                <span class="font-bold text-white">${code}</span>
+                <span class="text-zinc-400 ml-1.5">(${credits} cr)</span>
+                <div class="text-[11px] text-zinc-300 mt-0.5">${title}</div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="openReviewsModal('', '${code}')" 
+                        class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition">
+                  Reviews
+                </button>
+                <button onclick="toggleStageCourse('${fullKey.replace(/'/g, "\\'")}')" 
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold transition ${isStaged ? 'bg-appleGreenBg text-appleGreen border border-appleGreen/40' : 'bg-byuRoyal hover:bg-byuRoyalHover text-white'}">
+                  ${isStaged ? 'Staged' : '+ Stage'}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Religion
+      const relContainer = document.getElementById('mymap-religion-container');
+      const missingRel = studentProfile.missing_religion || [];
+      document.getElementById('mymap-religion-needed-count').textContent = `${missingRel.length} needed`;
+
+      if (!missingRel.length) {
+        relContainer.innerHTML = '<p class="text-xs text-appleGreen py-3 text-center">All religion requirements satisfied.</p>';
+      } else {
+        relContainer.innerHTML = missingRel.map(r => {
+          const code = r[0];
+          const credits = r[1];
+          const title = r[2];
+          const fullKey = `${code} - ${title}`;
+          const isStaged = stagedCourses.has(fullKey);
+
+          return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-appleSurfaceAlt/40 border border-appleBorder text-xs">
+              <div>
+                <span class="font-bold text-white">${code}</span>
+                <span class="text-zinc-400 ml-1.5">(${credits} cr)</span>
+                <div class="text-[11px] text-zinc-300 mt-0.5">${title}</div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="openReviewsModal('', '${code}')" 
+                        class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition">
+                  Reviews
+                </button>
+                <button onclick="toggleStageCourse('${fullKey.replace(/'/g, "\\'")}')" 
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold transition ${isStaged ? 'bg-appleGreenBg text-appleGreen border border-appleGreen/40' : 'bg-byuRoyal hover:bg-byuRoyalHover text-white'}">
+                  ${isStaged ? 'Staged' : '+ Stage'}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('mymap-deficiencies-summary').textContent = `${missingMajor.length} Major, ${missingGECnt} GE, ${missingRel.length} Religion Deficiencies`;
+    }
+
+    // -------------------------------------------------------------------------
+    // Auto-Stage Balanced Semester (~15 credits)
+    // -------------------------------------------------------------------------
+    function autoStageBalancedSemester() {
+      if (!studentProfile) {
+        alert('Please upload a BYU Progress to Degree PDF first.');
+        return;
+      }
+
+      stagedCourses.clear();
+      let totalCr = 0.0;
+      const targetCap = 15.5;
+
+      // 1 Religion Course (2.0 cr)
+      const missingRel = studentProfile.missing_religion || [];
+      if (missingRel.length > 0) {
+        const r = missingRel[0];
+        stagedCourses.add(`${r[0]} - ${r[2]}`);
+        totalCr += r[1];
+      }
+
+      // Up to 3 Major Courses
+      const missingMajor = studentProfile.missing_major || [];
+      for (const m of missingMajor) {
+        if (totalCr + m[1] <= targetCap) {
+          stagedCourses.add(`${m[0]} - ${m[2]}`);
+          totalCr += m[1];
+          if (totalCr >= 11.0) break;
+        }
+      }
+
+      // Fill with Top-Rated GE Options
+      const missingGE = studentProfile.missing_ge || [];
+      for (const g of missingGE) {
+        if (totalCr >= 14.0) break;
+        const opts = (geOptionsData && geOptionsData[g[0]]) ? geOptionsData[g[0]] : [];
+        if (opts.length > 0) {
+          const bestOpt = opts[0];
+          if (totalCr + bestOpt.credits <= targetCap) {
+            stagedCourses.add(bestOpt.catalog_key);
+            totalCr += bestOpt.credits;
+          }
+        }
+      }
+
+      syncStagedState();
+      showToast(`Auto-staged ${stagedCourses.size} courses (${totalCr.toFixed(1)} cr) for a balanced semester!`);
+      switchTab('builder');
+    }
+
+    // -------------------------------------------------------------------------
+    // Catalog Lookup
+    // -------------------------------------------------------------------------
+    function handleCatalogSearchDebounce() {
+      clearTimeout(searchDebounceTimeout);
+      searchDebounceTimeout = setTimeout(() => {
+        catalogOffset = 0;
+        fetchCatalogCourses();
+      }, 250);
+    }
+
+    async function fetchCatalogCourses() {
+      const q = document.getElementById('catalog-search').value;
+      const dept = document.getElementById('catalog-dept-filter').value;
+      const sort = document.getElementById('catalog-sort').value;
+
+      const container = document.getElementById('catalog-results-container');
+      container.innerHTML = '<div class="text-center py-16 text-zinc-500 text-xs">Searching catalog...</div>';
+
+      try {
+        const url = `/api/catalog?q=${encodeURIComponent(q)}&dept=${encodeURIComponent(dept)}&sort=${sort}&offset=${catalogOffset}&limit=${catalogLimit}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        catalogTotal = data.total;
+        renderCatalogCourses(data.results);
+
+        document.getElementById('catalog-count-text').textContent = 
+          `Showing ${data.results.length ? catalogOffset + 1 : 0}–${Math.min(catalogOffset + data.results.length, catalogTotal)} of ${catalogTotal} courses`;
+        document.getElementById('catalog-prev-btn').disabled = catalogOffset === 0;
+        document.getElementById('catalog-next-btn').disabled = catalogOffset + catalogLimit >= catalogTotal;
+      } catch (e) {
+        container.innerHTML = '<div class="text-center py-16 text-appleRed text-xs">Failed to load courses.</div>';
+      }
+    }
+
+    function prevCatalogPage() {
+      if (catalogOffset >= catalogLimit) {
+        catalogOffset -= catalogLimit;
+        fetchCatalogCourses();
+      }
+    }
+
+    function nextCatalogPage() {
+      if (catalogOffset + catalogLimit < catalogTotal) {
+        catalogOffset += catalogLimit;
+        fetchCatalogCourses();
+      }
+    }
+
+    function renderCatalogCourses(courses) {
+      const container = document.getElementById('catalog-results-container');
+      if (!courses.length) {
+        container.innerHTML = '<div class="text-center py-16 text-zinc-500 text-xs">No matching courses found.</div>';
+        return;
+      }
+
+      container.innerHTML = courses.map(c => {
+        const isStaged = stagedCourses.has(c.key);
+        const rmpBadgeClass = c.avg_rmp >= 4.0 ? 'bg-emerald-500/10 text-appleGreen border-emerald-500/30' :
+                              c.avg_rmp >= 3.0 ? 'bg-blue-500/10 text-appleBlue border-blue-500/30' :
+                              c.avg_rmp > 0 ? 'bg-amber-500/10 text-appleOrange border-amber-500/30' :
+                              'bg-zinc-800 text-zinc-400 border-zinc-700';
+
+        const profsHtml = c.professors.slice(0, 4).map(p => {
+          return `
+            <div class="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-appleSurfaceAlt/60 border border-appleBorder/50">
+              <span class="font-medium text-zinc-200">${p.name}</span>
+              <div class="flex items-center space-x-2">
+                <span class="font-bold ${p.score_val >= 4.0 ? 'text-appleGreen' : p.score_val >= 3.0 ? 'text-appleBlue' : 'text-zinc-400'}">
+                  ${p.rating} / 5.0
+                </span>
+                <span class="text-[10px] text-zinc-400">(${p.num_ratings} rev)</span>
+                <button onclick="openReviewsModal('${p.name.replace(/'/g, "\\'")}', '${c.code}')" 
+                        class="text-[11px] text-zinc-300 hover:text-white px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 transition">
+                  Reviews
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-appleSurface border border-appleBorder rounded-xl p-4 sm:p-5 shadow-sm hover:border-zinc-600 transition">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm font-bold text-white">${c.code}</span>
+                  <span class="text-xs text-zinc-400 font-medium">${c.credits.toFixed(1)} cr</span>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full ${rmpBadgeClass} border font-bold">
+                    ${c.avg_rmp > 0 ? c.avg_rmp.toFixed(2) + ' Course Avg' : 'No Ratings'}
+                  </span>
+                </div>
+                <h4 class="text-xs text-zinc-300 font-medium mt-1">${c.title}</h4>
+              </div>
+              <div class="flex items-center space-x-2 self-end sm:self-auto">
+                <button onclick="openReviewsModal('', '${c.code}')" 
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-appleSurfaceAlt hover:bg-zinc-700 text-zinc-300 border border-appleBorder transition">
+                  Reviews
+                </button>
+                <button onclick="toggleStageCourse('${c.key.replace(/'/g, "\\'")}')" 
+                        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${isStaged ? 'bg-appleGreenBg text-appleGreen border border-appleGreen/40' : 'bg-byuRoyal hover:bg-byuRoyalHover text-white'}">
+                  ${isStaged ? 'Staged' : '+ Stage Course'}
+                </button>
+              </div>
+            </div>
+
+            ${c.professors.length ? `
+              <div class="mt-3.5 pt-3 border-t border-appleBorder/60 space-y-1.5">
+                <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Instructors & Course-Specific Ratings</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  ${profsHtml}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------------------
+    // Staged Courses & Schedule Builder
+    // -------------------------------------------------------------------------
+    function toggleStageCourse(courseKey) {
+      if (stagedCourses.has(courseKey)) {
+        stagedCourses.delete(courseKey);
+      } else {
+        stagedCourses.add(courseKey);
+      }
+      syncStagedState();
+    }
+
+    function removeStagedCourse(courseKey) {
+      stagedCourses.delete(courseKey);
+      syncStagedState();
+    }
+
+    function clearAllStaged() {
+      stagedCourses.clear();
+      syncStagedState();
+    }
+
+    function syncStagedState() {
+      const badge = document.getElementById('nav-staged-badge');
+      if (stagedCourses.size > 0) {
+        badge.textContent = stagedCourses.size;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      const listEl = document.getElementById('builder-staged-list');
+      if (stagedCourses.size === 0) {
+        listEl.innerHTML = '<p class="text-xs text-zinc-500 text-center py-6">No courses staged yet.<br>Add courses from Lookup, MyMap Audit, or Roadmap.</p>';
+        document.getElementById('staged-credits-label').textContent = '0.0 Total Credits';
+      } else {
+        let estCredits = 0.0;
+        listEl.innerHTML = Array.from(stagedCourses).map(k => {
+          const code = k.split(' - ')[0];
+          estCredits += (code.startsWith('REL') ? 2.0 : code.includes('112') || code.includes('113') ? 4.0 : 3.0);
+          return `
+            <div class="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-appleSurfaceAlt border border-appleBorder">
+              <span class="font-medium text-white truncate max-w-[200px]">${k}</span>
+              <div class="flex items-center space-x-1.5">
+                <button onclick="openReviewsModal('', '${code}')" class="text-zinc-400 hover:text-white text-[11px] px-1.5 py-0.5 rounded bg-zinc-800">Reviews</button>
+                <button onclick="removeStagedCourse('${k.replace(/'/g, "\\'")}')" class="text-zinc-500 hover:text-appleRed transition font-bold">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('staged-credits-label').textContent = `${estCredits.toFixed(1)} Est. Credits`;
+      }
+
+      if (studentProfile) renderMyMapAudit();
+      const container = document.getElementById('catalog-results-container');
+      if (container && !container.innerHTML.includes('Searching')) {
+        fetchCatalogCourses();
+      }
+    }
+
+    async function solveSchedules() {
+      if (stagedCourses.size < 2) {
+        alert('Please stage at least 2 courses to solve conflict-free combinations.');
+        return;
+      }
+
+      const minRmp = parseFloat(document.getElementById('pref-min-rmp').value);
+      const noFridays = document.getElementById('pref-no-fridays').checked;
+
+      const resultsContainer = document.getElementById('builder-schedules-list');
+      const statusEl = document.getElementById('builder-results-status');
+      resultsContainer.innerHTML = '<div class="text-center py-16 text-zinc-500 text-xs">Computing optimal conflict-free combinations...</div>';
+      statusEl.textContent = 'Solving...';
+
+      try {
+        const res = await fetch('/api/solve-schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staged_courses: Array.from(stagedCourses),
+            min_rmp: minRmp,
+            no_fridays: noFridays,
+            min_start_m: -1,
+            max_end_m: -1
+          })
+        });
+
+        const data = await res.json();
+        statusEl.textContent = data.message;
+        renderSolvedSchedules(data.schedules);
+      } catch (e) {
+        resultsContainer.innerHTML = '<div class="text-center py-16 text-appleRed text-xs">Failed to solve schedules.</div>';
+      }
+    }
+
+    let solvedSchedulesCache = [];
+
+    function renderSolvedSchedules(schedules) {
+      solvedSchedulesCache = schedules;
+      const container = document.getElementById('builder-schedules-list');
+      if (!schedules.length) {
+        container.innerHTML = '<div class="text-center py-16 text-zinc-500 text-xs">No collision-free permutations found. Try relaxing your filters.</div>';
+        return;
+      }
+
+      container.innerHTML = schedules.map((sched, idx) => {
+        const secsHtml = sched.sections.map(s => {
+          return `
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-2 px-3 rounded-lg bg-appleSurfaceAlt/50 border border-appleBorder/60 gap-1.5">
+              <div>
+                <span class="font-bold text-white">${s.course_code || s.course.split(' - ')[0]}</span>
+                <span class="text-zinc-400 ml-1.5 font-medium">${s.title || s.course_title || ''}</span>
+              </div>
+              <div class="flex items-center space-x-3 text-zinc-300">
+                <span>${s.days || 'TBA'} ${s.start_time || ''}–${s.end_time || ''}</span>
+                <span class="text-zinc-500">•</span>
+                <span class="font-medium">${s.instructor}</span>
+                <button onclick="openReviewsModal('${(s.instructor || '').replace(/'/g, "\\'")}', '${s.course_code || ''}')" 
+                        class="text-[11px] text-zinc-300 hover:text-white px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 transition">
+                  Reviews (${s.rmp_rating || 'N/A'})
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-appleSurface border border-appleBorder rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div class="flex justify-between items-center border-b border-appleBorder/60 pb-2.5">
+              <div class="flex items-center space-x-2.5">
+                <span class="px-2.5 py-0.5 rounded-full bg-byuRoyal/20 border border-byuRoyal/40 text-blue-400 font-bold text-xs">
+                  Option #${idx + 1}
+                </span>
+                <span class="text-xs font-bold text-appleGreen">${sched.avg_score.toFixed(2)} / 5.0 Rating</span>
+                <span class="text-xs text-zinc-400 font-medium">${sched.total_credits.toFixed(1)} Credits</span>
+              </div>
+              <button onclick="openCalendarModal(${idx})" class="bg-appleSurfaceAlt hover:bg-zinc-700 text-white px-3 py-1 rounded-lg text-xs font-semibold border border-appleBorder transition">
+                View Weekly Calendar
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              ${secsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------------------
+    // GE Options Fetch
+    // -------------------------------------------------------------------------
+    async function fetchGEOptions() {
+      try {
+        const res = await fetch('/api/ge-options');
+        geOptionsData = await res.json();
+      } catch (e) {
+        console.error('Failed to fetch GE options', e);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Degree Roadmap View
+    // -------------------------------------------------------------------------
+    let currentSemestersList = [];
+
+    async function generateRoadmap() {
+      if (!studentProfile) return;
+
+      const startingTerm = document.getElementById('roadmap-term').value;
+      const targetCredits = parseFloat(document.getElementById('roadmap-credits').value);
+      const includeSummer = document.getElementById('roadmap-summer').checked;
+
+      const container = document.getElementById('roadmap-timeline');
+      container.innerHTML = '<div class="text-center py-16 text-zinc-500 text-xs">Computing graduation sequencing...</div>';
+
+      try {
+        const res = await fetch('/api/roadmap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: studentProfile,
+            starting_term: startingTerm,
+            target_credits_per_term: targetCredits,
+            include_summer: includeSummer
+          })
+        });
+
+        const data = await res.json();
+        renderRoadmapSemesters(data.semesters);
+      } catch (e) {
+        container.innerHTML = '<div class="text-center py-16 text-appleRed text-xs">Failed to calculate roadmap.</div>';
+      }
+    }
+
+    function renderRoadmapSemesters(semesters) {
+      currentSemestersList = semesters;
+      const container = document.getElementById('roadmap-timeline');
+      if (!semesters.length) {
+        container.innerHTML = '<div class="text-center py-16 text-appleGreen text-xs">Degree requirements completed.</div>';
+        return;
+      }
+
+      container.innerHTML = semesters.map((sem, idx) => {
+        const coursesHtml = sem.courses.map(c => {
+          const typeBadge = c.type === 'Major' ? 'bg-blue-500/20 text-appleBlue' :
+                            c.type === 'Religion' ? 'bg-purple-500/20 text-purple-300' :
+                            c.type === 'GE' ? 'bg-emerald-500/20 text-appleGreen' :
+                            'bg-zinc-700 text-zinc-300';
+          return `
+            <div class="flex items-center justify-between text-xs py-2 px-3 rounded-lg bg-appleSurfaceAlt/60 border border-appleBorder/50">
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${typeBadge}">${c.type}</span>
+                <span class="font-bold text-white">${c.code}</span>
+                <span class="text-zinc-400 font-medium">${c.title}</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-zinc-300 font-semibold">${c.credits.toFixed(1)} cr</span>
+                <button onclick="openReviewsModal('', '${c.code}')" class="text-zinc-400 hover:text-white text-[11px] px-2 py-0.5 rounded bg-zinc-800">Reviews</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-appleSurface border border-appleBorder rounded-xl p-5 shadow-sm space-y-3">
+            <div class="flex justify-between items-center border-b border-appleBorder/60 pb-2.5">
+              <div class="flex items-center space-x-2.5">
+                <span class="text-sm font-bold text-white">${sem.term}</span>
+                <span class="text-xs text-appleGreen font-bold">${sem.term_credits.toFixed(1)} Credits</span>
+                <span class="text-zinc-500">•</span>
+                <span class="text-xs text-zinc-400">Cumulative: ${sem.cumulative_credits.toFixed(1)} / 120 cr</span>
+              </div>
+              <button onclick="stageTermCourses(${idx})" class="px-3 py-1 rounded-lg text-xs font-semibold bg-byuRoyal hover:bg-byuRoyalHover text-white transition">
+                + Stage Term to Builder
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              ${coursesHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function stageTermCourses(semIndex) {
+      if (!currentSemestersList[semIndex]) return;
+      const termCourses = currentSemestersList[semIndex].courses || [];
+      let count = 0;
+      termCourses.forEach(c => {
+        if (c.code && !c.code.includes('ELECTIVE')) {
+          stagedCourses.add(c.code);
+          count++;
+        }
+      });
+      syncStagedState();
+      showToast(`Staged ${count} courses from Term into Schedule Builder`);
+      switchTab('builder');
+    }
+
+    // -------------------------------------------------------------------------
+    // Modals
+    // -------------------------------------------------------------------------
+    function openCalendarModal(scheduleIndex) {
+      const sched = solvedSchedulesCache[scheduleIndex];
+      if (!sched) return;
+
+      document.getElementById('modal-cal-title').textContent = `Weekly Timetable (Option #${scheduleIndex + 1})`;
+      document.getElementById('modal-cal-subtitle').textContent = `${sched.total_credits.toFixed(1)} Credits • ${sched.avg_score.toFixed(2)} Avg Rating`;
+
+      const body = document.getElementById('calendar-grid-body');
+      body.innerHTML = '';
+
+      const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+      const dayMap = { 'M': 1, 'T': 2, 'W': 3, 'Th': 4, 'F': 5 };
+
+      hours.forEach((h, hIdx) => {
+        const topPx = hIdx * 60;
+        const line = document.createElement('div');
+        line.className = 'absolute left-0 right-0 border-b border-appleBorder/40 flex items-center h-[60px] pointer-events-none';
+        line.style.top = `${topPx}px`;
+        const timeLabel = h <= 12 ? `${h}:00 ${h === 12 ? 'PM' : 'AM'}` : `${h - 12}:00 PM`;
+        line.innerHTML = `<span class="text-[10px] text-zinc-500 pl-2 w-16 font-mono">${timeLabel}</span>`;
+        body.appendChild(line);
+      });
+
+      sched.sections.forEach(s => {
+        const days = s.days ? s.days.match(/Th|Sa|[MTWFS]/g) || [] : [];
+        const startMin = s.start_min;
+        const endMin = s.end_min;
+
+        if (startMin && endMin && startMin !== -1) {
+          const topPx = ((startMin - 8 * 60) / 60) * 60;
+          const heightPx = Math.max(((endMin - startMin) / 60) * 60, 24);
+
+          days.forEach(d => {
+            const colIndex = dayMap[d];
+            if (colIndex) {
+              const eventBox = document.createElement('div');
+              eventBox.className = 'absolute rounded-lg p-2 bg-byuRoyal/90 border border-blue-400 text-white shadow-md overflow-hidden text-left leading-tight';
+              eventBox.style.top = `${topPx}px`;
+              eventBox.style.height = `${heightPx}px`;
+              eventBox.style.left = `calc(16.66% * ${colIndex} + 4px)`;
+              eventBox.style.width = 'calc(16.66% - 8px)';
+              eventBox.innerHTML = `
+                <div class="font-bold text-[11px] truncate">${s.course_code || s.course.split(' - ')[0]}</div>
+                <div class="text-[10px] text-blue-200 truncate">${s.start_time}–${s.end_time}</div>
+                <div class="text-[9px] text-zinc-300 truncate">${s.instructor || ''}</div>
+              `;
+              body.appendChild(eventBox);
+            }
+          });
+        }
+      });
+
+      body.style.height = `${hours.length * 60}px`;
+      document.getElementById('calendar-modal').classList.remove('hidden');
+    }
+
+    function closeCalendarModal() {
+      document.getElementById('calendar-modal').classList.add('hidden');
+    }
+
+    async function openReviewsModal(instructor, courseCode) {
+      activeModalCourseCode = courseCode || '';
+      document.getElementById('modal-rev-instructor').textContent = instructor || 'Loading Instructor...';
+      document.getElementById('modal-rev-course').textContent = courseCode ? `Target Course: ${courseCode}` : 'Instructor Feedback';
+
+      const listEl = document.getElementById('modal-rev-list');
+      listEl.innerHTML = '<div class="text-center py-12 text-zinc-500 text-xs">Loading verified student reviews...</div>';
+      document.getElementById('reviews-modal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/reviews?instructor=${encodeURIComponent(instructor || '')}&course_code=${encodeURIComponent(courseCode || '')}`);
+        const prof = await res.json();
+
+        const activeName = prof.name || instructor || 'Instructor';
+        document.getElementById('modal-rev-instructor').textContent = activeName;
+        document.getElementById('modal-rev-course').textContent = prof.course_code ? `${prof.course_code}: ${prof.course_title}` : `Target Course: ${courseCode}`;
+
+        document.getElementById('modal-rev-rating').textContent = `${prof.rating} / 5.0`;
+        document.getElementById('modal-rev-difficulty').textContent = `${prof.difficulty} / 5.0`;
+        document.getElementById('modal-rev-num').textContent = prof.num_ratings;
+
+        // Populate professor switcher if course has multiple instructors
+        const selectContainer = document.getElementById('modal-rev-prof-select-container');
+        const selectEl = document.getElementById('modal-rev-prof-select');
+        const allProfs = prof.all_course_instructors || [];
+
+        if (allProfs.length > 1) {
+          selectEl.innerHTML = allProfs.map(p => {
+            const isSelected = p.name === activeName;
+            return `<option value="${p.name}" ${isSelected ? 'selected' : ''}>${p.name} (${p.rating} / 5.0)</option>`;
+          }).join('');
+          selectContainer.classList.remove('hidden');
+        } else {
+          selectContainer.classList.add('hidden');
+        }
+
+        const reviews = prof.reviews || [];
+        if (!reviews.length) {
+          listEl.innerHTML = '<div class="text-center py-12 text-zinc-500 text-xs">No course-specific student reviews on file for this instructor.</div>';
+          return;
+        }
+
+        listEl.innerHTML = reviews.map(r => {
+          return `
+            <div class="bg-appleSurfaceAlt/60 border border-appleBorder rounded-xl p-4 space-y-2 text-xs">
+              <div class="flex justify-between items-center text-zinc-400">
+                <span class="font-bold text-white">${r.date || 'Review'} • Grade: ${r.grade || 'N/A'}</span>
+                <span class="font-bold text-appleGreen">${r.rClarity || r.quality || '5.0'} / 5.0</span>
+              </div>
+              <p class="text-zinc-200 leading-relaxed">${r.rComments || r.comment || ''}</p>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = '<div class="text-center py-12 text-appleRed text-xs">Failed to load reviews.</div>';
+      }
+    }
+
+    function handleModalProfChanged() {
+      const selectedInstructor = document.getElementById('modal-rev-prof-select').value;
+      openReviewsModal(selectedInstructor, activeModalCourseCode);
+    }
+
+    function closeReviewsModal() {
+      document.getElementById('reviews-modal').classList.add('hidden');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeCalendarModal();
+        closeReviewsModal();
+      }
+    });
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>
